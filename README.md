@@ -62,3 +62,18 @@
     
     python ~/scripts/filter-for-primer.py --i ${SAMPLE}_MERGED --o ${SAMPLE}_MERGED-primer-filtered.fa
 
+#### 6. Now that you have the quality and ensured that all of your amplicons contain the proper adaptor, Its time to run swarm.  This consists of a few parts; 1. concatenate all of the filtered fasta files, 2. use vsearch to dereplicate all sequences 3. run swarm 4. Create a table of counts of each SWARM in each sample. 
+
+    #!/bin/bash
+    #SBATCH --nodes=1
+    #SBATCH --tasks-per-node=20 
+    #SBATCH --mem=200Gb
+    #SBATCH --time=24:00:00
+
+    cat *MERGED-primer-filtered.fa > pooled-samples.fa
+    vsearch --derep_fulllength pooled-samples.fa --sizeout --output pooled-samples-derep.fa
+    swarm -d 1 -f -t 10 -z pooled-samples-derep.fa -s pooled-samples-derep-stats.txt -w pooled-samples-node-representatives.fa -o pooled-samples-node-table.txt
+    swarm -d 30 -t 10 -z pooled-samples-derep.fa -s pooled-samples-derep-stats-d30.txt -w pooled-samples-node-representatives-d30.fa -o pooled-samples-node-table-d30.txt
+    python ~/scripts/mu-swarms-to-ASVs-table-for-tarra.py -s pooled-samples-node-table.txt -o swarm-min50-count.txt -l samples.txt -n pooled-samples-node-representatives.fa -min 50
+    swarm -d 10 -t 40 -z pooled-samples-derep.fa -s pooled-samples-derep-stats-d10.txt -w pooled-samples-node-representatives_d10.fa -o pooled-samples-node-table_d10.txt
+    
