@@ -49,5 +49,16 @@
 
     iu-merge-pairs ${SAMPLE}.ini --enforce-Q30-check -o ${SAMPLE} --ignore-deflines
     
-####  5. This will merge your reads and create a ton of output files. Now you are going to want to filter out the primer sequences. Which you can do using the script "
+####  5. This will merge your reads and create a ton of output files. Now you are going to want to filter out the primer sequences. Which you can do using the script below
+
+    #!/bin/bash#
+    #SBATCH --nodes=1
+    #SBATCH --tasks-per-node=1
+    #SBATCH --mem=100Gb
+    #SBATCH --time=00:20:00
+    #SBATCH --array=1-25
+    
+    SAMPLE=$(sed -n "$SLURM_ARRAY_TASK_ID"p samples.txt)
+    
+    python ~/scripts/filter-for-primer.py --i ${SAMPLE}_MERGED --o ${SAMPLE}_MERGED-primer-filtered.fa
 
