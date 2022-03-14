@@ -75,6 +75,24 @@
     swarm -d 1 -f -t 40 -z pooled-samples-derep.fa -s pooled-samples-derep-stats.txt -w pooled-samples-node-representatives.fa -o pooled-samples-node-table.txt
     python ~/scripts/mu-swarms-to-ASVs-table-for-tarra.py -s pooled-samples-node-table.txt -o swarm-min50-count.txt -l samples.txt -n pooled-samples-node-representatives.fa -min 50
 
+##### Lets do a little checking to make sure that our output makes sense. Lets first look at the number of sequences that passed merging/quality and primer filtering. Here is a way to get these numbers 
+##### 1. Save the output of these two commands below as 1 and 2
+     
+    for i in *primer-filtered.fa ; do echo $i | cut -f 1 -d "_"; done
+    for i in *primer-filtered.fa ; do grep ">" $i | wc -l; done
+    
+##### 2. paste the two together 
+
+    paste 1 2 > x_Quality-and-primer-filtered-reads-per-sample.txt
+
+##### This file should look something like this
+
+    ERR562370	868285
+    ERR562382	2028652
+    ERR562390	1027926
+    ERR562426	801888
+    ERR562473	699206
+    
 #### 7. Run the taxonomy on the representative nodes using vsearch
 
     #!/bin/bash
