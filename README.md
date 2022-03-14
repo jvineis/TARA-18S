@@ -49,7 +49,7 @@
 
     iu-merge-pairs ${SAMPLE}.ini --enforce-Q30-check -o ${SAMPLE} --ignore-deflines
     
-####  5. This will merge your reads and create a ton of output files. Now you are going to want to filter out the primer sequences. Which you can do using the script below
+####  5. This will merge your reads and create a ton of output files. Now you are going to want to filter out reads that don't contain the primer sequences. Which you can do using the script below
 
     #!/bin/bash#
     #SBATCH --nodes=1
@@ -75,7 +75,7 @@
     swarm -d 1 -f -t 40 -z pooled-samples-derep.fa -s pooled-samples-derep-stats.txt -w pooled-samples-node-representatives.fa -o pooled-samples-node-table.txt
     python ~/scripts/mu-swarms-to-ASVs-table-for-tarra.py -s pooled-samples-node-table.txt -o swarm-min50-count.txt -l samples.txt -n pooled-samples-node-representatives.fa -min 50
 
-#### 8. Run the taxonomy on the representative nodes using vsearch
+#### 7. Run the taxonomy on the representative nodes using vsearch
 
     #!/bin/bash
     #
@@ -86,7 +86,44 @@
 
     vsearch --usearch_global reduced-node-fasta-min50.fa --db /scratch/gpfs/WARD/DBs/Database_W2_v9_pr2.fasta --blast6out NODE-HITS-min50.txt --id 0.6
     
-#### 7. Merge the taxonomy, and count matrix to create a beautiful anvio table. 
+#### 8. We need to transpose the swarm-min50-count.txt table and create a tree file based on the relative abundance of each swarm in the table - euclidian distances based on bray-curtis dissimilarity. The R script "x_rscript-to-build-tree-from-node-table.R" can do both of these things and is executed using the bash script below. You will need to edit the R script script so that your file names are contained in the "dat" and "write.tree" and "write.table" lines. 
+
+    #!/bin/bash
+    #SBATCH --nodes=1
+    #SBATCH --tasks-per-node=1
+    #SBATCH --mem=100Gb
+    #SBATCH --time=05:00:00
+
+    Rscript x_rscript-to-build-tree-from-node-table.R
+    
+#### 9. The output of R script file doesn't have the proper header. You need to open the file and add "ASVs" to the first row, first column. The first row should look something like this. The "ERR.." column headers are the sample names.
+
+    ASVs	ERR562370	ERR562382	ERR562390	ERR562426   ....
+
+#### 10. Merge the taxonomy, and count matrix to create a beautiful anvio table for data exploration using the script "convert-node-hits-to-tax-node-table.py"
+
+    python convert-node-hits-to-tax-node-table.py -n NODE-HITS-min50.txt -o swarm-taxonomy-and-counts.txt -r W2_v9_pr2-tax.txt -a swarm-min50-count-for-anvio.txt
+    
+##### you should run this on a server node and that sbatch script should look something like this.
+
+    #!/bin/bash
+    #SBATCH --nodes=1
+    #SBATCH --tasks-per-node=1
+    #SBATCH --mem=100Gb
+    #SBATCH --time=00:20:00
+    python convert-node-hits-to-tax-node-table.py -n NODE-HITS-min50.txt -o swarm-taxonomy-and-counts.txt -r W2_v9_pr2-tax.txt -a swarm-min50-count-for-anvio.txt
+    
+#### 11. Now you should be able to load the files into anvio and visualize the abundance and taxonomy of your swarms (ASVs). Its helpful to run it from the server. In which case you will need to ssh in a special way. like thus. 
+
+    ssh -L 8083:localhost:8083 jv2474@della.princeton.edu
+
+##### then cd to your directory where you have been doing all of your good 18S work, activate anvio and then run the command to get the interactive display up and running. The files that you specify with the -d and -t flags come from steps 10 and 8 respectively. 
+
+    anvi-interactive -d swarm-taxonomy-and-counts.txt -p swarm-taxonomy-and-counts.db -t swarm-min50-count.tre --manual-mode --server-only -P 8083
+
+##### now in a web browser, type in the following and the display will magically appear! Enjoy!
+
+    http://0.0.0.0:8083
 
 
 
