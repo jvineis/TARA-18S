@@ -74,4 +74,21 @@
     vsearch --derep_fulllength pooled-samples.fa --sizeout --output pooled-samples-derep.fa
     swarm -d 1 -f -t 40 -z pooled-samples-derep.fa -s pooled-samples-derep-stats.txt -w pooled-samples-node-representatives.fa -o pooled-samples-node-table.txt
     python ~/scripts/mu-swarms-to-ASVs-table-for-tarra.py -s pooled-samples-node-table.txt -o swarm-min50-count.txt -l samples.txt -n pooled-samples-node-representatives.fa -min 50
+
+#### 8. Run the taxonomy on the representative nodes using vsearch
+
+    #!/bin/bash
+    #
+    #SBATCH --nodes=1
+    #SBATCH --tasks-per-node=1
+    #SBATCH --mem=100Gb
+    #SBATCH --time=00:20:00
+
+    vsearch --usearch_global reduced-node-fasta-min50.fa --db /scratch/gpfs/WARD/DBs/Database_W2_v9_pr2.fasta --blast6out NODE-HITS-min50.txt --id 0.6
+    
+#### 7. Merge the taxonomy, and count matrix to create a beautiful anvio table. 
+
+
+
+
     
