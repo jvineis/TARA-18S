@@ -129,7 +129,7 @@
     #SBATCH --tasks-per-node=1
     #SBATCH --mem=100Gb
     #SBATCH --time=00:20:00
-    python convert-node-hits-to-tax-node-table.py -n NODE-HITS-min50.txt -o swarm-taxonomy-and-counts.txt -r W2_v9_pr2-tax.txt -a swarm-min50-count-for-anvio.txt
+    python ~/scripts/convert-node-hits-to-tax-node-table.py -n NODE-HITS.txt -o x_SWARMS-and-tax-for-anvio.txt -r W2_v9_pr2-tax.txt -s x_SWARM-contingency-table.txt -min 50
     
 #### 11. Now you should be able to load the files into anvio and visualize the abundance and taxonomy of your swarms (ASVs). Its helpful to run it from the server. In which case you will need to ssh in a special way. like thus. 
 
@@ -143,6 +143,17 @@
 
     http://0.0.0.0:8083
 
+#### 12. Lets add some more detail to the display. The R script "x_rscript-to-build-tree-from-node-table.R" is run through "x_build-tree-from-node-table.shx" and will create a newick style tree that you can make readable by ANVIO and then display the samples in a biologicaly meaningful order. The file needs to look something like below. One way to do this woud be to open the tree file and paste in all the text except for the newick tree section. easy peasy.
+
+    item_name	data_type	data_value
+    sample_order	basic	(((ERR562382:0.3305044361,ERR562490:0.3305044361):0.1622693878,((ERR562495:0.3165081272,ERR562721:0.31
+    65081272):0.1529479025,((ERR562556:0.3701376285,ERR562622:0.3701376285):0.08540201303,(((ERR562483:0.2220207845,ERR562574:0.22
+    20207845):0.08438854788,(ERR562620:0.2762364185,(ERR562539:0.1766348813,ERR562730:0.1766348813):0.09960153716):0.03017291388):
+    0.1233936379,(ERR562722:0.3852795611,((ERR562576:0.1943682858,ERR562644:0.1943682858):0.1354090604,(ERR562370:0.2469266734,ERR
+    562598:0.2469266734):0.08285067274):0.05550221498):0.04452340914):0.02573667126):0.01391638816):0.02331779422):0.005857568796,
+    (ERR562390:0.4984154387,((ERR562517:0.3260482863,(ERR562616:0.2913913532,(ERR562553:0.247530561,ERR562672:0.247530561):0.04386
+    07922):0.03465693311):0.1469173896,(ERR562657:0.3818427369,(ERR562503:0.2317135468,(ERR562426:0.2187443165,ERR562473:0.2187443
+    165):0.01296923032):0.1501291901):0.09112293894):0.02544976278):0.0002159540589);
 
 
 
