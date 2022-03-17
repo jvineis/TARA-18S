@@ -131,10 +131,10 @@
     ## 5. Combine the swarms into an ASV table.
     #python ~/scripts/mu-swarms-to-ASVs-table-for-tarra.py -repfa pooled-samples-node-representatives-sorted.fa -stats pooled-samples-derep-stats.txt -swarms pooled-samples-node-table.txt -l samples-primer-derep-names.txt > x_SWARM-contingency-table.txt
     ## 6. Filter out the low abundance SWARMS, and create the file for anvio visualization.
-    #python ~/scripts/convert-node-hits-to-tax-node-table.py -n NODE-HITS.txt -o x_SWARMS-and-tax-for-anvio.txt -r W2_v9_pr2-tax.txt-s x_SWARM-contingency-table.txt -min 50
+    #python ~/scripts/convert-node-hits-to-tax-node-table.py -n NODE-HITS.txt -o x_SWARMS-and-tax-for-anvio -r W2_v9_pr2-tax.txt -s x_SWARM-contingency-table.txt -min 50
 
     
-#### 8. We need to transpose the swarm-min50-count.txt table and create a tree file based on the relative abundance of each swarm in the table - euclidian distances based on bray-curtis dissimilarity. The R script "x_rscript-to-build-tree-from-node-table.R" can do both of these things and is executed using the bash script below. You will need to edit the R script script so that your file names are contained in the "dat" and "write.tree" and "write.table" lines. 
+#### 8. We need to transpose the swarm-min50-count.txt table and create a tree file based on the relative abundance of each swarm in the table - euclidian distances based on bray-curtis dissimilarity. The R script "x_rscript-to-build-tree-from-node-table.R" can do both of these things and is executed using the bash script below. You will need to edit the R script script so that your file names are contained in the "dat" and "write.tree" and "write.table" lines. The script will produce a x_SWARMS-and-tax-for-anvio-relative-abundance-samples.tre file and a x_SWARMS-and-tax-for-anvio-relative-abundance.tre which are for your sample and ASV organization respectively. 
 
     #!/bin/bash
     #SBATCH --nodes=1
@@ -143,37 +143,8 @@
     #SBATCH --time=05:00:00
 
     Rscript x_rscript-to-build-tree-from-node-table.R
-    
-#### 9. The output of R script file doesn't have the proper header. You need to open the file and add "ASVs" to the first row, first column. The first row should look something like this. The "ERR.." column headers are the sample names.
 
-    ASVs	ERR562370	ERR562382	ERR562390	ERR562426   ....
-
-#### 10. Merge the taxonomy, and count matrix to create a beautiful anvio table for data exploration using the script "convert-node-hits-to-tax-node-table.py"
-
-    python convert-node-hits-to-tax-node-table.py -n NODE-HITS-min50.txt -o swarm-taxonomy-and-counts.txt -r W2_v9_pr2-tax.txt -a swarm-min50-count-for-anvio.txt
-    
-##### you should run this on a server node and that sbatch script should look something like this.
-
-    #!/bin/bash
-    #SBATCH --nodes=1
-    #SBATCH --tasks-per-node=1
-    #SBATCH --mem=100Gb
-    #SBATCH --time=00:20:00
-    python ~/scripts/convert-node-hits-to-tax-node-table.py -n NODE-HITS.txt -o x_SWARMS-and-tax-for-anvio.txt -r W2_v9_pr2-tax.txt -s x_SWARM-contingency-table.txt -min 50
-    
-#### 11. Now you should be able to load the files into anvio and visualize the abundance and taxonomy of your swarms (ASVs). Its helpful to run it from the server. In which case you will need to ssh in a special way. like thus. 
-
-    ssh -L 8083:localhost:8083 jv2474@della.princeton.edu
-
-##### then cd to your directory where you have been doing all of your good 18S work, activate anvio and then run the command to get the interactive display up and running. The files that you specify with the -d and -t flags come from steps 10 and 8 respectively. 
-
-    anvi-interactive -d swarm-taxonomy-and-counts.txt -p swarm-taxonomy-and-counts.db -t swarm-min50-count.tre --manual-mode --server-only -P 8083
-
-##### now in a web browser, type in the following and the display will magically appear! Enjoy!
-
-    http://0.0.0.0:8083
-
-#### 12. Lets add some more detail to the display. The R script "x_rscript-to-build-tree-from-node-table.R" is run through "x_build-tree-from-node-table.shx" and will create a newick style tree that you can make readable by ANVIO and then display the samples in a biologicaly meaningful order. The file needs to look something like below. One way to do this woud be to open the tree file and paste in all the text except for the newick tree section. easy peasy.
+#### 9. Lets add some more detail to the display. The R script "x_rscript-to-build-tree-from-node-table.R" is run through "x_build-tree-from-node-table.shx" and will create a newick style tree that you can make readable by ANVIO and then display the samples and ASVs in a biologicaly meaningful order. The file needs to look something like below. One way to do this woud be to open the tree file and paste in all the text except for the newick tree section. easy peasy. If you are not sure of the name of your tree file.. just run ls \*.tre and you will find the file that you need to open and edit in this way. 
 
     item_name	data_type	data_value
     sample_order	basic	(((ERR562382:0.3305044361,ERR562490:0.3305044361):0.1622693878,((ERR562495:0.3165081272,ERR562721:0.31
@@ -184,6 +155,39 @@
     (ERR562390:0.4984154387,((ERR562517:0.3260482863,(ERR562616:0.2913913532,(ERR562553:0.247530561,ERR562672:0.247530561):0.04386
     07922):0.03465693311):0.1469173896,(ERR562657:0.3818427369,(ERR562503:0.2317135468,(ERR562426:0.2187443165,ERR562473:0.2187443
     165):0.01296923032):0.1501291901):0.09112293894):0.02544976278):0.0002159540589);
+
+##### To add this information to an anvio database, you first need to create one, simply by loading the data that you have already made into an anvio interactive session. Here is how to do that.  
+
+##### First start a fresh ssh using a login like the one you see bleow.
+    
+    ssh -L 8083:localhost:8083 jv2474@della.princeton.edu
+
+##### then cd to your directory where you have been doing all of your good 18S work, activate anvio and then run the command to get the interactive display up and running. The files that you specify with the -d and -t flags come from steps 10 and 8 respectively. 
+
+    anvi-interactive -d x_SWARMS-and-tax-for-anvio-relative-abundance.txt -t x_SWARMS-and-tax-for-anvio-relative-abundance.tre -p x_SWARMS-and-tax-for-anvio-relative-abundance.db --manual-mode --server-only -P 8083
+
+##### now in a web browser, type in the following and the display will magically appear (after you click on Draw).
+
+    http://0.0.0.0:8083
+
+##### you can then stop the anvi-interactive display in your terminal using cntrl c
+
+##### Now you can add the sample tree information to your display like this. (make sure that you have an active anvio conda environment.)
+
+    anvi-import-misc-data x_SWARMS-and-tax-for-anvio-relative-abundance-samples.tre -p x_SWARMS-and-tax-for-anvio-relative-abundance.db --target-data-table layer_orders
+
+##### Add any metadata to your anvio database. 
+
+##### Lets say that I have a file x_SWARMS-and-tax-for-anvio-metadata.txt that was produced by the convert-node-hits-to-tax-node-table.py way up in step 7. I can now add this to the layers anvio database that will allow me to visualize the taxonomy and swarm node details of each swarm(ASV). After you import this information, you can reload your anvio display as you did above.
+
+    anvi-import-misc-data x_SWARMS-and-tax-for-anvio-metadata.txt -p x_SWARMS-and-tax-for-anvio-relative-abundance.db --target-data-table items
+
+##### The metadata file, x_SWARMS-and-tax-for-anvio-metadata.txt, should look something like this. 
+
+    OTU	total	cloud	amplicon	length	abundance	spread	taxid	taxonomy	tax1	tax2	tax3	tax4	tax5	tax6	tax7	tax8	tax9	tax10 
+    s_1	1367871	6663	b268468dd19dac760691ce28812afcd10270f7b7	167	442316	25	HO778380.2.1586_U	Eukaryota|Archaeplastida|Streptophyta|Embryophyceae|Embryophyceae_X|Embryophyceae_XX|Phaseolus|Phaseolus+acutifolius|na|na	Eukaryota Archaeplastida	Streptophyta	Embryophyceae	Embryophyceae_X	Embryophyceae_XX	Phaseolus	Phaseolus+acutifolius	na	na
+    s_2	1060749	7677	df0716f210b687c98b2e052e82f5c73e3a1c146b	165	713680	25	HO778380.2.1586_U	Eukaryota|Archaeplastida|Streptophyta|Embryophyceae|Embryophyceae_X|Embryophyceae_XX|Phaseolus|Phaseolus+acutifolius|na|na	Eukaryota
+	Archaeplastida	Streptophyta	Embryophyceae	Embryophyceae_X	Embryophyceae_XX	Phaseolus	Phaseolus+acutifolius	na	na
 
 
 
