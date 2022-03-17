@@ -51,7 +51,8 @@
 
     iu-merge-pairs ${SAMPLE}.ini --enforce-Q30-check -o ${SAMPLE} --ignore-deflines
     
-####  5. This will merge your reads and create a ton of output files. Now you are going to want to filter out reads that don't contain the primer sequences. Which you can do using the script below
+    
+####  5. Step 4 will merge your reads and create a ton of output files. Now you are going to want to filter out reads that don't contain the primer sequences from the high quality read files that end with MERGED. You can do using the script below. The script below also contains the step to dereplicate the reads for each of your samples. Make sure that you have an active bioconda environment (e.g. "conda activate bioconda") prior to running python script through the sbatch. Also make sure that you have vsearch active prior to running the derepliate step for each sample. You can use the hash (#) character in front of the lines that you don't want to run.
 
     #!/bin/bash#
     #SBATCH --nodes=1
@@ -63,19 +64,7 @@
     SAMPLE=$(sed -n "$SLURM_ARRAY_TASK_ID"p samples.txt)
     
     python ~/scripts/filter-for-primer.py --i ${SAMPLE}_MERGED --o ${SAMPLE}_MERGED-primer-filtered.fa
-
-#### 6. Now that you have the quality and ensured that all of your amplicons contain the proper adaptor, Its time to run swarm.  This consists of a few parts; 1. concatenate all of the filtered fasta files, 2. use vsearch to dereplicate all sequences 3. run swarm 4. Create a table of counts of each SWARM in each sample. 
-
-    #!/bin/bash
-    #SBATCH --nodes=1
-    #SBATCH --tasks-per-node=20 
-    #SBATCH --mem=200Gb
-    #SBATCH --time=10:00:00
-
-    cat *MERGED-primer-filtered.fa > pooled-samples.fa
-    vsearch --derep_fulllength pooled-samples.fa --sizeout --output pooled-samples-derep.fa
-    swarm -d 1 -f -t 40 -z pooled-samples-derep.fa -s pooled-samples-derep-stats.txt -w pooled-samples-node-representatives.fa -o pooled-samples-node-table.txt
-    python ~/scripts/mu-swarms-to-ASVs-table-for-tarra.py -s pooled-samples-node-table.txt -o swarm-min50-count.txt -l samples.txt -n pooled-samples-node-representatives.fa -min 50
+    vsearch --quiet --derep_fulllength ${SAMPLE}_MERGED-primer-filtered.fa --sizeout --fasta_width 0 --relabel_sha1 --output ${SAMPLE}-primer-derep.fa
 
 ##### Lets do a little checking to make sure that our output makes sense. Lets first look at the number of sequences that passed merging/quality and primer filtering. Here is a way to get these numbers 
 ##### 1. Save the output of these two commands below as 1 and 2
@@ -87,15 +76,40 @@
 
     paste 1 2 > x_Quality-and-primer-filtered-reads-per-sample.txt
 
-##### This file should look something like this
+##### This file should look something like this - just a sanity check to make sure we didn't loose all of our reads. 
 
     ERR562370	868285
     ERR562382	2028652
     ERR562390	1027926
     ERR562426	801888
     ERR562473	699206
-    
-#### 7. Run the taxonomy on the representative nodes using vsearch
+
+
+#### 6. Now that you have the quality and ensured that all of your amplicons contain the proper adaptor, Its time to run swarm.  This consists of a few parts that are outlined in the bash script below. 
+
+    #!/bin/bash
+    #
+    #SBATCH --nodes=1
+    #SBATCH --tasks-per-node=1
+    #SBATCH --mem=150Gb
+    #SBATCH --time=04:00:00
+
+    ### These steps replicate the work here
+    ### https://github.com/frederic-mahe/swarm/wiki/Fred's-metabarcoding-pipeline#global-dereplication-clustering-and-chimera-detection
+    ### The cat and vsearch steps should be run with the conda vsearch envionment
+    ### The sarm should be run with this environment "conda activate /home/jv2474/.conda/envs/swarm-v3.1"
+    ### The python script should be run with the bioconda environment.
+
+    ## 1. Concatenate the merged and filtered sequences
+    #cat *-primer-derep.fa > pooled-samples.fa
+    ## 2. Dereplicaete the concatenated sequences
+    #vsearch --derep_fulllength pooled-samples.fa --fasta_width 0 --sizeout --sizein --output pooled-samples-derep.fa
+    ## 3. Cluster the sequences
+    #swarm -d 1 -f -t 40 -z pooled-samples-derep.fa -i pooled-samples-derep-struct.txt -s pooled-samples-derep-stats.txt -w pooled-samples-node-representatives.fa -o pooled-samples-node-table.txt
+    ## 4. Sort the clustered node representatives
+    #vsearch --fasta_width 0 --sortbysize pooled-samples-node-representatives.fa --output pooled-samples-node-representatives-sorted.fa
+   
+#### 7. Run the taxonomy on the representative nodes.
 
     #!/bin/bash
     #
@@ -104,7 +118,21 @@
     #SBATCH --mem=100Gb
     #SBATCH --time=00:20:00
 
-    vsearch --usearch_global reduced-node-fasta-min50.fa --db /scratch/gpfs/WARD/DBs/Database_W2_v9_pr2.fasta --blast6out NODE-HITS-min50.txt --id 0.6
+    vsearch --usearch_global pooled-samples-node-representatives-sorted.fa --db /scratch/gpfs/WARD/DBs/Database_W2_v9_pr2.fasta --blast6out NODE-HITS.txt --id 0.6
+    
+#### 8. Convert the swarm output to a contingency table. Then create two tables. 1. contains the metadata for each swarm including taxonomy, length of the representative sequence etc. 2. a contingency table of samples and swarms. The script also create a tree file for both the sample organization and the amplicon organization. you could also reconstruct a phylogenetic tree if you wanted to  
+    #!/bin/bash
+    #
+    #SBATCH --nodes=1
+    #SBATCH --tasks-per-node=1
+    #SBATCH --mem=150Gb
+    #SBATCH --time=04:00:00 
+    
+    ## 5. Combine the swarms into an ASV table.
+    #python ~/scripts/mu-swarms-to-ASVs-table-for-tarra.py -repfa pooled-samples-node-representatives-sorted.fa -stats pooled-samples-derep-stats.txt -swarms pooled-samples-node-table.txt -l samples-primer-derep-names.txt > x_SWARM-contingency-table.txt
+    ## 6. Filter out the low abundance SWARMS, and create the file for anvio visualization.
+    #python ~/scripts/convert-node-hits-to-tax-node-table.py -n NODE-HITS.txt -o x_SWARMS-and-tax-for-anvio.txt -r W2_v9_pr2-tax.txt-s x_SWARM-contingency-table.txt -min 50
+
     
 #### 8. We need to transpose the swarm-min50-count.txt table and create a tree file based on the relative abundance of each swarm in the table - euclidian distances based on bray-curtis dissimilarity. The R script "x_rscript-to-build-tree-from-node-table.R" can do both of these things and is executed using the bash script below. You will need to edit the R script script so that your file names are contained in the "dat" and "write.tree" and "write.table" lines. 
 
