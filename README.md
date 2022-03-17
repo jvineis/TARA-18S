@@ -120,7 +120,7 @@
 
     vsearch --usearch_global pooled-samples-node-representatives-sorted.fa --db /scratch/gpfs/WARD/DBs/Database_W2_v9_pr2.fasta --blast6out NODE-HITS.txt --id 0.6
     
-#### 8. Convert the swarm output to a contingency table. Then create two tables. 1. contains the metadata for each swarm including taxonomy, length of the representative sequence etc. 2. a contingency table of samples and swarms. The script also create a tree file for both the sample organization and the amplicon organization. you could also reconstruct a phylogenetic tree if you wanted to  
+#### 8. Convert the swarm output to a contingency table. Then create two tables from the resulting output. 1. contains the metadata for each swarm including taxonomy, length of the representative sequence etc. 2. a contingency table of samples and swarms. The script also create a tree file for both the sample organization and the amplicon organization. you could also reconstruct a phylogenetic tree if you wanted to  
     #!/bin/bash
     #
     #SBATCH --nodes=1
