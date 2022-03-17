@@ -1,7 +1,9 @@
 # TARA-18S
 ### Most of the work outlined here is from my work with Bess Ward and others in her lab at Princeton. Its just a reference for us to recreate our analysis, but could be useful to others. Its  unlikely that I will maintain the scripts in this directory, but I might be able to help if you are really stuck. Keep in mind that 18S is probs really not very good for much and many organisms have tons of copies of this gene within a single cell. Anyway. Its fun to analyze and sometimes we learn things. 
 ### I use conda to download almost all software needed for the analysis below unless otherwise noted.
-#### 1.  Download the data from SRA.All you need is an SRA number and sratools to get download the fastq files for analysis. The SRA numbers should be in a list like the one below. 
+### SRA numbers for the TARA oceans data can be found here for most samples https://www.ncbi.nlm.nih.gov/Traces/study/?query_key=8&WebEnv=MCID_623338d644660f5bac78969b&o=acc_s%3Aa and you can download metadata for samples of interest using sratools for any or all of the samples if you like. The metadata is included in this git for you as well. 
+
+#### 1.  Download the data from SRA. All you need is an SRA number and sratools to get download the fastq files for analysis. The SRA numbers should be in a list like the one below which can be found in the metadata (link above) for all the samples that you want to analyze. 
 
     ERR562490
     ERR562503 
@@ -68,7 +70,7 @@
     #SBATCH --nodes=1
     #SBATCH --tasks-per-node=20 
     #SBATCH --mem=200Gb
-    #SBATCH --time=24:00:00
+    #SBATCH --time=10:00:00
 
     cat *MERGED-primer-filtered.fa > pooled-samples.fa
     vsearch --derep_fulllength pooled-samples.fa --sizeout --output pooled-samples-derep.fa
