@@ -12,7 +12,7 @@
     ERR562473
     ERR562622
 
-##### then you can run a script like this to download the data.. this will create a file for both the read1 and read2 fastq files
+##### then you can run a script like this to download the data.. this will create a file for both the read1 and read2 fastq files. If you are working on the princeton cluster, you need to ssh jv2474@tigressdata.princeton.edu
 
     #!/bin/bash
     for i in `cat x_sra-18S-names-to-download.txt`; do fastq-dump $i --split-files; done
